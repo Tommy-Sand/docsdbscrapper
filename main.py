@@ -1,5 +1,5 @@
-from os import remove
 from bs4 import BeautifulSoup as BS
+from certifi import contents
 import requests
 import pymongo
 
@@ -7,10 +7,9 @@ def removeacronym(element):
     if(isinstance(element, str)):
         return element
     if (len(element.contents) > 0):
-        temp = element.contents[0]
+        return element.contents[0]
     else:
-        temp = None
-    return temp
+        return None
 
 def search_diclist(diclist, key):
     for i in range(len(diclist)):
@@ -37,9 +36,7 @@ def createcourse(curcourse, table, date,columnnames):
                     break
                 lecture.append(ii.contents[0])
             elif(len(ii.contents) > 1):
-                temp = ii.contents
-                temp = list(map(removeacronym, temp))
-                lecture.append(temp)
+                lecture.append(list(map(removeacronym, ii.contents)))
             else:
                 lecture.append(None)
         if(islab):
@@ -64,8 +61,8 @@ def createcourse(curcourse, table, date,columnnames):
             curcourse.lec.append({lecture[0]:copylecture[1:]})
             curcourse.mostrecent.append({lecture[0]:lecture[1:len(lecture)-1]})
 
-def createdb():
-    content = requests.get("https://docsdb.cs.ualberta.ca/Timetable/1780.html", verify = False).text
+def createdb(link):
+    content = requests.get(link, verify = False).text
     BScontent = BS(content,"html.parser")
     date = BScontent.find("h5").contents[0].strip()
     courses = BScontent.find_all("h2")
@@ -83,8 +80,8 @@ def createdb():
         semester.insert_one({"cid": ccourses[i].cid, "cname": ccourses[i].cname, "lectures": ccourses[i].lec, "most recent": ccourses[i].mostrecent})
     return
 
-def updatedb():
-    content = requests.get("https://docsdb.cs.ualberta.ca/Timetable/1780.html", verify = False).text
+def updatedb(link):
+    content = requests.get(link, verify = False).text
     BScontent = BS(content,"html.parser")
     date = BScontent.find("h5").contents[0].strip()
     courses = BScontent.find_all("h2")
@@ -124,15 +121,21 @@ def updatedb():
                                 semester.replace_one({"_id" : db_course["_id"]},db_course)
     return
 
-rhead = requests.head("https://docsdb.cs.ualberta.ca/Timetable/1780.html", verify = False)
-update = False
-with open("etag.txt") as etag:
-    if(rhead.headers["Etag"] != etag.readline().strip("\n")):
+meta_content = requests.get("https://docsdb.cs.ualberta.ca/", verify = False).text
+BSmeta_content = BS(meta_content, "html.parser")
+links = [link.get("href") for link in BSmeta_content.find_all('a') if link.get("href").split("/")[-1].strip(".html").isnumeric()]
+client = pymongo.MongoClient("mongodb://localhost:27017/")
+enrollment = client["Enrollment"]
+etag_coll = enrollment["etag"]
+for link in links:
+    rhead = requests.head(link, verify = False)
+    update = False
+    if(etag_coll.find_one({"link": link}) == None):
+        createdb(link)
+        etag_coll.insert_one({"link": link, "etag": rhead.headers["Etag"]})
+    elif(rhead.headers["Etag"] != etag_coll.find_one({"link": link})):
         update = True
 
-if update:
-    with open("etag.txt", "w") as etag:
-        etag.write(rhead.headers["Etag"])
-
-createdb()
-updatedb() #make sure to tab this so it only updates when needed
+    if update:
+        etag_coll.replace_one({"link": link}, {"link": link, "etag": rhead.headers["Etag"]})
+        updatedb(link) #make sure to tab this so it only updates when needed
