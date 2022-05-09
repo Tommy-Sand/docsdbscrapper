@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Page Title</title>
+    </head>
+    <body> 
+        <label for="semester">Choose a semester:</label>
+        <select name = "Semesters" id = "sem">
+            {%for Semester in Semesters%}
+                <option value = "{{Semester}}">{{Semester}}</option>
+            {% endfor %}
+        </select>
+    </body>
+</html>
