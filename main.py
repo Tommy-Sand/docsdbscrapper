@@ -1,5 +1,3 @@
-from turtle import update
-from venv import create
 from bs4 import BeautifulSoup as BS
 import requests
 import pymongo
@@ -98,7 +96,7 @@ def createdb(client, link):
         table = courses[i].find_next_sibling("table")
         createcourse(ccourses[i],table, date, columnnames)
         array_of_courses.append({"cid": ccourses[i].cid, "cname": ccourses[i].cname, "lectures": ccourses[i].lec, "most_recent": ccourses[i].mostrecent})
-    enrollment.insert_one({"semester": sem_name,"courses": array_of_courses})
+    enrollment.insert_one({"link": link, "sem_name": sem_name, "courses": array_of_courses})
     return
 
 def updatedb(client, link):
@@ -108,7 +106,7 @@ def updatedb(client, link):
     courses = BScontent.find_all("h2")
     enrollment = client["sample"]["graphingsite_semester"]
     sem_name = BScontent.find("head").find("title").contents[0].strip()
-    semester = enrollment.find_one({"semester": sem_name})["courses"]
+    semester = enrollment.find_one({"sem_name": sem_name})["courses"]
     ccourses = [course(i.find("a")["id"], i.contents[1]) for i in courses]
     columnnames = list(map(removeacronym, courses[0].find_next_sibling("table").find("tr").find_all("th")))
     del columnnames[1:4]
@@ -122,7 +120,7 @@ def updatedb(client, link):
                 break
         if(db_course == None ):
             storage_course = {"cid": ccourses[i].cid, "cname": ccourses[i].cname, "lectures": ccourses[i].lec, "most_recent": ccourses[i].mostrecent}
-            enrollment.update_one({"semester": sem_name}, {"$push":  {"courses": storage_course}})
+            enrollment.update_one({"sem_name": sem_name}, {"$push":  {"courses": storage_course}})
         elif(ccourses[i].mostrecent != db_course["most_recent"]):
             for j in ccourses[i].mostrecent:
                 key = j['Lecture']
@@ -138,13 +136,12 @@ def updatedb(client, link):
                                 continue
                             else:
                                 temp = search_diclist(db_course["lectures"], 'Lecture', key)
-                                temp2 = temp[0][k]
                                 search_string = "courses.{}.lectures.{}.{}".format(l, temp[1], k)
                                 new_object = {'date': date, 'num': new[k]}
-                                enrollment.update_one({"semester" : sem_name}, {'$push': {search_string: new_object}})
+                                enrollment.update_one({"sem_name" : sem_name}, {'$push': {search_string: new_object}})
                                 search_string = "courses.{}.most_recent.{}.{}".format(l, temp[1], k)
                                 new_value = new_object["num"]
-                                enrollment.update_one({"semester" : sem_name}, {'$set': {search_string: new_value}})
+                                enrollment.update_one({"sem_name" : sem_name}, {'$set': {search_string: new_value}})
     return
 
 meta_content = requests.get("https://docsdb.cs.ualberta.ca/", verify = False).text
@@ -162,7 +159,6 @@ for link in links:
         etag_coll.insert_one({"link": link, "etag": rhead.headers["Etag"]})
     elif(rhead.headers["Etag"] != etag_coll.find_one({"link": link})['etag']):
         update = True
-
     if update:
         etag_coll.replace_one({"link": link}, {"link": link, "etag": rhead.headers["Etag"]})
         updatedb(client, link)
