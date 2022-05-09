@@ -1,6 +1,5 @@
 #from django.db import models
 from djongo import models
-from django import forms
 # Create your models here.
 
 class pair(models.Model):
@@ -71,6 +70,7 @@ class course(models.Model):
 
 class semester(models.Model):
     _id = models.ObjectIdField()
+    link = models.CharField(max_length=200)
     sem_name = models.CharField(max_length=100)
     courses = models.ArrayField(
         model_container = course,
@@ -80,4 +80,3 @@ class etag(models.Model):
     _id = models.ObjectIdField()
     link = models.CharField(max_length=200)
     etag = models.CharField(max_length=100)
-
