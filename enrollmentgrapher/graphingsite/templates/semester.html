@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>DocsDBViewer</title>
+    </head>
+    <body> 
+        <form action = "{%url 'graphingsite:submit'%}" method = "get">
+        <label for="Year">Choose a Year:</label>
+        <select name = "Year" id = "year">
+            {%for Year in Years%}
+                <option value = "{{Year}}">{{Year}}</option>
+            {% endfor %}
+        </select>
+        <label for="Semester">Choose a Semester:</label>
+        <select name = "Semester" id = "sem">
+            {%for Semester in Semesters%}
+                <option value = "{{Semester}}">{{Semester}}</option>
+            {% endfor %}
+        </select>
+        <label for="Lecture">Choose a Lecture:</label>
+        <select name = "Lecture" id = "lec">
+        </select>
+        <input type="submit" value="Submit">
+        </form>
+    </body>
+</html>
