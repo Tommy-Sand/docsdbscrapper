@@ -14,7 +14,7 @@ def search_diclist(diclist, key, value):
     for i in range(len(diclist)):
         if(diclist[i].get(key, "") == value):
             return (diclist[i], i)
-    return {}
+    return [{}]
 
 class course:
     def __init__(self, cid, cname):
@@ -86,6 +86,7 @@ def createdb(client, link):
     courses = BScontent.find_all("h2")
     enrollment = client["sample"]["graphingsite_semester"]
     sem_name = BScontent.find("head").find("title").contents[0].strip()
+    sem_name = sem_name[26:len(sem_name)-7]
     if (sem_name in enrollment.distinct("semester")):
         return
     ccourses = [course(i.find("a")["id"], i.contents[1]) for i in courses]
@@ -106,6 +107,7 @@ def updatedb(client, link):
     courses = BScontent.find_all("h2")
     enrollment = client["sample"]["graphingsite_semester"]
     sem_name = BScontent.find("head").find("title").contents[0].strip()
+    sem_name = sem_name[26:len(sem_name)-7]
     semester = enrollment.find_one({"sem_name": sem_name})["courses"]
     ccourses = [course(i.find("a")["id"], i.contents[1]) for i in courses]
     columnnames = list(map(removeacronym, courses[0].find_next_sibling("table").find("tr").find_all("th")))
@@ -124,8 +126,15 @@ def updatedb(client, link):
         elif(ccourses[i].mostrecent != db_course["most_recent"]):
             for j in ccourses[i].mostrecent:
                 key = j['Lecture']
-                if(j == search_diclist(db_course["most_recent"], 'Lecture', key)[0]):
+                lecture = search_diclist(db_course["most_recent"], 'Lecture', key)
+                if(j == lecture[0]):
                     continue
+                elif(lecture[0] == {}):
+                    new_lecture = search_diclist(ccourses[i].lec, 'Lecture', key)[0]
+                    search_string = "courses.{}.lectures".format(i)
+                    enrollment.update_one({"sem_name" : sem_name}, {'$push': {search_string: new_lecture}})
+                    search_string = "courses.{}.most_recent".format(i)
+                    enrollment.update_one({"sem_name" : sem_name}, {'$push': {search_string: j}})
                 else:
                     new = j
                     old = search_diclist(db_course["most_recent"], 'Lecture', key)[0]
@@ -142,6 +151,11 @@ def updatedb(client, link):
                                 search_string = "courses.{}.most_recent.{}.{}".format(l, temp[1], k)
                                 new_value = new_object["num"]
                                 enrollment.update_one({"sem_name" : sem_name}, {'$set': {search_string: new_value}})
+        for j in range(len(ccourses[i].lec)):
+            lecture = search_diclist(db_course["lectures"], 'Lecture', ccourses[i].lec[j]["Lecture"])
+            if(ccourses[i].lec[j]["Instructor"] != lecture[0]["Instructor"]):
+                search_string = "courses.{}.lectures.{}.Instructor".format(l, lecture[1])
+                enrollment.update_one({"sem_name" : sem_name}, {'$set': {search_string: ccourses[i].lec[j]["Instructor"]}})
     return
 
 meta_content = requests.get("https://docsdb.cs.ualberta.ca/", verify = False).text
@@ -153,12 +167,12 @@ enrollment = client["sample"]["graphingsite_semester"]
 etag_coll = client["sample"]["graphingsite_etag"]
 for link in links:
     rhead = requests.head(link, verify = False)
-    update = False
+    update = True
     if(etag_coll.find_one({"link": link}) == None):
         createdb(client, link)
         etag_coll.insert_one({"link": link, "etag": rhead.headers["Etag"]})
     elif(rhead.headers["Etag"] != etag_coll.find_one({"link": link})['etag']):
         update = True
     if update:
-        etag_coll.replace_one({"link": link}, {"link": link, "etag": rhead.headers["Etag"]})
         updatedb(client, link)
+        etag_coll.replace_one({"link": link}, {"link": link, "etag": rhead.headers["Etag"]})
