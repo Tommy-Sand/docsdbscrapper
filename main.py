@@ -123,6 +123,7 @@ def updatedb(client, link):
         if(db_course == None ):
             storage_course = {"cid": ccourses[i].cid, "cname": ccourses[i].cname, "lectures": ccourses[i].lec, "most_recent": ccourses[i].mostrecent}
             enrollment.update_one({"sem_name": sem_name}, {"$push":  {"courses": storage_course}})
+            db_course = storage_course
         elif(ccourses[i].mostrecent != db_course["most_recent"]):
             for j in ccourses[i].mostrecent:
                 key = j['Lecture']
@@ -153,7 +154,9 @@ def updatedb(client, link):
                                 enrollment.update_one({"sem_name" : sem_name}, {'$set': {search_string: new_value}})
         for j in range(len(ccourses[i].lec)):
             lecture = search_diclist(db_course["lectures"], 'Lecture', ccourses[i].lec[j]["Lecture"])
-            if(ccourses[i].lec[j]["Instructor"] != lecture[0]["Instructor"]):
+            if(lecture == [{}]):
+                pass
+            elif(ccourses[i].lec[j]["Instructor"] != lecture[0]["Instructor"]):
                 search_string = "courses.{}.lectures.{}.Instructor".format(l, lecture[1])
                 enrollment.update_one({"sem_name" : sem_name}, {'$set': {search_string: ccourses[i].lec[j]["Instructor"]}})
     return
@@ -167,7 +170,7 @@ enrollment = client["sample"]["graphingsite_semester"]
 etag_coll = client["sample"]["graphingsite_etag"]
 for link in links:
     rhead = requests.head(link, verify = False)
-    update = True
+    update = False
     if(etag_coll.find_one({"link": link}) == None):
         createdb(client, link)
         etag_coll.insert_one({"link": link, "etag": rhead.headers["Etag"]})
