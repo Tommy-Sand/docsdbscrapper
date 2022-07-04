@@ -1,9 +1,7 @@
 
-from multiprocessing import context
 from django.http import HttpResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.template import loader
-import pandas as pd
 from .models import semester
 import json
 from datetime import datetime
@@ -59,3 +57,6 @@ def submit(request):
     }
     template = loader.get_template('chart.html')
     return HttpResponse(template.render(context, request))
+
+if __name__ == "__main__":
+    index()
