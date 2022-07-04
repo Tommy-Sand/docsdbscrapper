@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>DocsDBViewer</title>
+    </head>
+    <body> 
+        <form action = "{%url 'graphingsite:submit_s_c_l'%}" method = "get">
+        <label for="lecture">Choose a Lecture:</label>
+        <select name = "lecture" id = "lecture">
+            {%for lecture in lectures%}
+                <option value = "{{lecture}}">{{lecture}}</option>
+            {% endfor %}
+        </select>
+        <input type = "hidden" id="course" name="course" value="{{course}}"> 
+        <input type="submit" value="Submit">
+        </form>
+    </body>
+</html>

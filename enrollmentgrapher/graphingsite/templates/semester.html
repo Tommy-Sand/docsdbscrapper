@@ -4,7 +4,7 @@
         <title>DocsDBViewer</title>
     </head>
     <body> 
-        <form action = "{%url 'graphingsite:submit'%}" method = "get">
+        <form action = "{%url 'graphingsite:submit_s'%}" method = "get">
         <label for="Year">Choose a Year:</label>
         <select name = "Year" id = "year">
             {%for Year in Years%}
