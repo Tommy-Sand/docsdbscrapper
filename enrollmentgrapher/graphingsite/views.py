@@ -91,6 +91,7 @@ def submit_s_c_l(request):
         if combd_dic.get(dates_list[i], -1) == -1:
             combd_dic[dates_list[i]] = combd_dic[dates_list[i-1]]
     context = {
+        "course_name" : json.dumps({"name": requested_course + request.GET['lecture']}),
         "date_list": json.dumps(dates_list),
         "cap_list": json.dumps(list(cap_dic.values())),
         "reg_list": json.dumps(list(reg_dic.values())),
