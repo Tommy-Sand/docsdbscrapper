@@ -121,7 +121,7 @@ def updatedb(client, link):
 meta_content = requests.get("https://docsdb.cs.ualberta.ca/", verify = False).text
 BSmeta_content = BS(meta_content, "html.parser")
 links = [link.get("href") for link in BSmeta_content.find_all('a') if link.get("href").split("/")[-1].strip(".html").isnumeric()]
-client = pymongo.MongoClient("mongodb+srv://chiefbaron:rock3000@cluster0.hpbqa.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
+client = pymongo.MongoClient("SECURITY-KEY")
 enrollment = client["Enrollment"]
 etag_coll = enrollment["etag"]
 for link in links:
